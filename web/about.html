@@ -1,0 +1,160 @@
+<a href=img/symbol.php target=_blank>APRS图标</a><p>
+
+程序源码请见 <a href=https://github.com/bg6cq/aprs target=_blank>https://github.com/bg6cq/aprs</a> 有问题请联系james@ustc.edu.cn<p>
+<a href=INSTALL.html>这里</a>有个从头安装一台独立aprs服务器的过程。<p>
+<img src=aprs_6cq.png>
+<br>
+
+程序请放在 /usr/src/aprs 下<p>
+
+<h3>1. aprsudp</h3>
+<pre>
+功能：
+从 14580 UDP端口接收数据
+使用UDP转发给以下端口
+127.0.0.1 14581
+127.0.0.1 14582
+127.0.0.1 14583
+120.25.100.30 14580 (aprs.helloce.net)
+</pre>
+
+<h3>2. aprstcp & aprscmdtcp</h3>
+<pre>
+功能：
+从 14580 tcp端口接收数据
+使用TCP转发给china.aprs2.net
+使用UDP转发给以下端口
+127.0.0.1 14582
+127.0.0.1 14583
+120.25.100.30 14580
+
+aprscmdtcp从14590 tcp端口接收数据，并且会处理命令的传递
+</pre>
+
+<h3>3. udptoaprs</h3>
+<pre>
+命令行： udptoaprs 呼号
+参数含义：呼号，用来连接china.aprs2.net服务器
+ 
+功能：
+从 127.0.0.1 14581 UDP端口接收数据
+使用TCP转发给china.aprs2.net
+注意：BA BD BG BH BR BI BY VR +数字 的才转发
+</pre>
+ 
+<h3>4. udptolog</h3>
+<pre>
+功能：
+从 127.0.0.1 14582 UDP端口接收数据
+在 /var/log/aprs目录下记录收到的APRS数据包
+</pre>
+
+<h3>5. udptomysql</h3>
+<pre>
+功能：
+从 127.0.0.1 14583 UDP端口接收数据
+在mysql数据库中记录收到的APRS数据包
+</pre>
+
+<h3>6. aprs.fi.toudp</h3>
+<pre>
+命令行： aprs.fi.toudp 呼号
+参数含义：呼号，用来连接china.aprs2.net服务器
+功能：
+登录china.aprs2.net服务器，获取呼号前缀为B和VR2的信息
+使用UDP转发给/usr/src/aprs/aprs.fi.udpdest服务器(/usr/src/aprs/aprs.fi.udpdest 可以有多行，每行是一个IP:port形式)
+含有-13>的数据包发给114.55.54.60 14580(lewei50.com)
+</pre>
+
+<h3>7. gt02</h3>
+<pre>
+命令行：gt02
+功能：
+在TCP 8821端口接收GT02设备的数据包
+如果收到的IMEI在 /usr/src/aprs/imei_call.txt有对应呼呼，则转发给
+UDP 127.0.0.1 14580
+否则使用呼号GT2UN-9，使用UDP转发给
+127.0.0.1 14582
+127.0.0.1 14583
+</pre>
+启用方式：发短信给GT02 SERVER,666666,0,202.141.176.2,8821,0#
+
+<h3>8. local.toudp</h3>
+<pre>
+命令行：local.todup 127.0.0.1 呼号
+参数含义：呼号，用来连接127.0.0.1  14580服务器
+功能：
+登录127.0.0.1 14580 APRS-IS服务器，获取信息
+使用UDP转发给
+127.0.0.1 14583
+</pre>
+
+<h3>9. local.toaprs</h3>
+<pre>
+命令行：local.toaprs 127.0.0.1 呼号
+参数含义：呼号，用来连接127.0.0.1  14580服务器
+功能：
+登录127.0.0.1 14580 APRS-IS服务器，获取BA BD BG BH BR开头信息
+使用TCP转发给
+china.aprs2.net 14580
+</pre>
+
+<h3>10. aprstomysql</h3>
+<pre>
+命令行： aprstomyql 呼号
+参数含义：呼号，用来连接china.aprs2.net服务器
+功能：
+登录china.aprs2.net服务器，获取呼号前缀为B和VR2的信息
+存放到数据库china中
+</pre>
+
+<h3>11. udptolocal</h3>
+<pre>
+命令行: udptolocal 呼号
+参数含义：呼号，用来连接127.0.0.1服务器
+功能：
+从 14580 UDP端口接收数据
+使用TCP转发给127.0.0.1 14580
+</pre>
+
+
+
+<h3>数据库信息</h3>
+<pre>
+数据库名字是 aprs 
+
+表结构：
+
+CREATE TABLE `aprspacket` (
+  `tm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `call` varchar(16) NOT NULL,
+  `datatype` char(1) NOT NULL,
+  `lat` char(8) NOT NULL,
+  `lon` char(9) NOT NULL,
+  `table` char(1) NOT NULL,
+  `symbol` char(1) NOT NULL,
+  `msg` varchar(200) NOT NULL,
+  `raw` varchar(250) NOT NULL,
+  KEY `tm` (`tm`),
+  KEY `tm_call` (`tm`,`call`),
+  KEY `call_tm` (`call`,`tm`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `lastpacket` (
+  `call` varchar(16) NOT NULL,
+  `tm` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `datatype` char(1) NOT NULL,
+  `lat` char(8) NOT NULL,
+  `lon` char(9) NOT NULL,
+  `table` char(1) NOT NULL,
+  `symbol` char(1) NOT NULL,
+  `msg` varchar(200) NOT NULL,
+  PRIMARY KEY (`call`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE `packetstats` (
+  `day` date NOT NULL DEFAULT '0000-00-00',
+  `packets` int(10) DEFAULT NULL,
+  PRIMARY KEY (`day`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+</pre>
